@@ -1,0 +1,59 @@
+name: chatterbox-latam
+
+services:
+  # One-shot init container: downloads the model assets into the `models`
+  # volume and exits 0. The server only starts after it completes.
+  downloader:
+    build: .
+    image: chatterbox-latam:latest
+    container_name: chatterbox-latam-download
+    restart: "no"
+    user: "root"
+    environment:
+      - HF_HOME=/models/hf
+      - MODELS_DIR=/models/latam
+      - CONDS_DIR=/models/conds
+    volumes:
+      - models:/models
+    command: ["python", "/app/download_models.py"]
+
+  server:
+    build: .
+    image: chatterbox-latam:latest
+    container_name: chatterbox-latam
+    restart: unless-stopped
+    init: true
+    depends_on:
+      downloader:
+        condition: service_completed_successfully
+    environment:
+      - HF_HOME=/models/hf
+      - MODELS_DIR=/models/latam
+      - CONDS_DIR=/models/conds
+      - VOICES_DIR=/voices
+      - TTS_LANGUAGE=${TTS_LANGUAGE:-es}
+      - TTS_EXAGGERATION=${TTS_EXAGGERATION:-0.5}
+      - TTS_CFG_WEIGHT=${TTS_CFG_WEIGHT:-0.5}
+      - TTS_TEMPERATURE=${TTS_TEMPERATURE:-0.8}
+      - TTS_DEVICE=${TTS_DEVICE:-}
+    ports:
+      - "${CHATTERBOX_PORT:-5005}:5005"
+    volumes:
+      - models:/models
+      - ./voices:/voices
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5005/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+volumes:
+  models:

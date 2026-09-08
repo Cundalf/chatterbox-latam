@@ -1,0 +1,15 @@
+# Local configuration - never commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Voice clips are user content on the server (bind mount)
+voices/*
+!voices/.gitkeep
+
+# Audio artifacts
+*.wav

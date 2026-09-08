@@ -1,0 +1,11 @@
+.git
+.gitignore
+.env
+voices
+*.wav
+README*
+docs
+tests
+__pycache__
+*.pyc
+.pytest_cache
