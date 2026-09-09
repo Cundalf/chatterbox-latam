@@ -77,7 +77,6 @@ def load_model():
 
     logger.info("Loading %s on %s ...", T3_MODEL, device)
     model = ChatterboxMultilingualTTS.from_local(MODELS_DIR, device=device, t3_model=T3_MODEL)
-    model.eval()
     logger.info("Model ready on %s", device)
     return model
 
