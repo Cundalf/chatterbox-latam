@@ -29,6 +29,8 @@ def fake_hf(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, "huggingface_hub", module)
     monkeypatch.setattr(download_models, "MODELS_DIR", tmp_path / "latam")
     monkeypatch.setattr(download_models, "CONDS_DIR", tmp_path / "conds")
+    monkeypatch.setattr(download_models, "LATAM_FILES", [(name, 1_000) for name, _ in download_models.LATAM_FILES])
+    monkeypatch.setattr(download_models, "BASE_FILES", [(name, 1_000) for name, _ in download_models.BASE_FILES])
     return calls
 
 

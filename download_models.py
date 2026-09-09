@@ -37,19 +37,20 @@ CONDS_DIR = Path(os.getenv("CONDS_DIR", "/models/conds"))
 LATAM_REPO = "ResembleAI/Chatterbox-Multilingual-es-mx-latam"
 BASE_REPO = "ResembleAI/chatterbox"
 
+# (filename, minimum expected size in bytes) - sanity guard against
+# truncated downloads; sizes are the actual file sizes on HuggingFace.
 LATAM_FILES = [
-    "t3_es_mx_latam.safetensors",
-    "s3gen_v3.pt",
-    "grapheme_mtl_merged_expanded_v1.json",
+    ("t3_es_mx_latam.safetensors", 2_000_000_000),
+    ("s3gen_v3.pt", 1_000_000_000),
+    ("grapheme_mtl_merged_expanded_v1.json", 50_000),
 ]
-BASE_FILES = ["ve.pt"]
+BASE_FILES = [("ve.pt", 1_000_000)]
 
 DEFAULT_VOICE_URL = (
     "https://storage.googleapis.com/chatterbox-demo-samples/"
     "mtl-v3-single-language-prompts/es-latam/es_mx_f1.wav"
 )
 DEFAULT_VOICE_MIN_BYTES = 100_000
-CHECKPOINT_MIN_BYTES = 1_000_000
 
 
 def fetch(repo: str, name: str, dest: Path, min_bytes: int) -> None:
@@ -102,10 +103,10 @@ def ensure_default_voice() -> None:
 def main() -> int:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        for name in LATAM_FILES:
-            fetch(LATAM_REPO, name, MODELS_DIR, CHECKPOINT_MIN_BYTES)
-        for name in BASE_FILES:
-            fetch(BASE_REPO, name, MODELS_DIR, CHECKPOINT_MIN_BYTES)
+        for name, min_bytes in LATAM_FILES:
+            fetch(LATAM_REPO, name, MODELS_DIR, min_bytes)
+        for name, min_bytes in BASE_FILES:
+            fetch(BASE_REPO, name, MODELS_DIR, min_bytes)
         ensure_s3gen_pt()
         ensure_default_voice()
     except Exception as exc:
