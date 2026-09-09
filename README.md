@@ -84,13 +84,17 @@ in fp32 (~3.4 GB of weights), leaving comfortable headroom for activations.
 | Asset | Source | Size | Role |
 | --- | --- | --- | --- |
 | `t3_es_mx_latam.safetensors` | es-mx-latam repo | 2.14 GB | LatAm Spanish T3 (text → speech tokens) |
-| `s3gen_v3.pt` → `s3gen.pt` | es-mx-latam repo | 1.06 GB | S3Gen v3 decoder (speech tokens → audio) |
+| `s3gen.pt` | `ResembleAI/chatterbox` (base) | 1.06 GB | S3Gen v3 decoder + S3 tokenizer (speech tokens → audio) |
 | `grapheme_mtl_merged_expanded_v1.json` | es-mx-latam repo | 70 KB | Tokenizer (vocab 2454) |
 | `ve.pt` | `ResembleAI/chatterbox` | small | Voice encoder (speaker embedding) |
 | `es_mx_f1.wav` | demo samples bucket | 1.6 MB | Bundled `default` voice clip |
 
 The downloader assembles exactly the layout [`ChatterboxMultilingualTTS.from_local`](https://github.com/resemble-ai/chatterbox)
-expects, including the `s3gen_v3.pt → s3gen.pt` copy (the loader does `torch.load("s3gen.pt")`).
+expects. `s3gen.pt` comes from the **base repo**, not the es-mx-latam repo: it is the only
+checkpoint that carries the S3 tokenizer buffers (`tokenizer._mel_filters`, `tokenizer.window`)
+required by the loader's strict `load_state_dict`. The per-language repos only ship `s3gen_v3.pt`,
+which lacks those keys and fails to load (the downloader validates the keys and re-downloads if a
+stale file is found).
 
 The chatterbox-tts package is installed **from GitHub master, pinned to a commit** — the PyPI
 release (0.1.7, 2025-06) predates the es-mx-latam finetune and its `from_local` cannot select

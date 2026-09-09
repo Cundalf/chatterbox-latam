@@ -5,14 +5,20 @@ the server starts. Downloads:
 
   - ResembleAI/Chatterbox-Multilingual-es-mx-latam:
       t3_es_mx_latam.safetensors      (2.14 GB, LatAm Spanish T3)
-      s3gen_v3.pt                     (1.06 GB, S3Gen v3 decoder)
       grapheme_mtl_merged_expanded_v1.json  (tokenizer, vocab 2454)
-  - ResembleAI/chatterbox:
+  - ResembleAI/chatterbox (base repo):
       ve.pt                           (voice encoder, shared asset)
+      s3gen.pt                        (1.06 GB, S3Gen v3 decoder + tokenizer)
+
+The base repo's s3gen.pt is required: it is the checkpoint the current
+Chatterbox code loads (torch.load + strict load_state_dict) and it is the
+only one that carries the S3 tokenizer buffers (tokenizer._mel_filters,
+tokenizer.window). The per-language repos only ship s3gen_v3.pt, which
+lacks those keys and fails to load.
 
 Then assembles the exact directory layout `from_local` expects:
 
-    /models/latam/s3gen.pt            (copy of s3gen_v3.pt, torch.load)
+    /models/latam/s3gen.pt
     /models/latam/t3_es_mx_latam.safetensors
     /models/latam/grapheme_mtl_merged_expanded_v1.json
     /models/latam/ve.pt
@@ -26,7 +32,6 @@ volume survives container rebuilds without re-downloading anything.
 from __future__ import annotations
 
 import os
-import shutil
 import sys
 import urllib.request
 from pathlib import Path
@@ -41,10 +46,10 @@ BASE_REPO = "ResembleAI/chatterbox"
 # truncated downloads; sizes are the actual file sizes on HuggingFace.
 LATAM_FILES = [
     ("t3_es_mx_latam.safetensors", 2_000_000_000),
-    ("s3gen_v3.pt", 1_000_000_000),
     ("grapheme_mtl_merged_expanded_v1.json", 50_000),
 ]
 BASE_FILES = [("ve.pt", 1_000_000)]
+S3GEN_MIN_BYTES = 1_000_000_000
 
 DEFAULT_VOICE_URL = (
     "https://storage.googleapis.com/chatterbox-demo-samples/"
@@ -68,25 +73,46 @@ def fetch(repo: str, name: str, dest: Path, min_bytes: int) -> None:
     print(f"[ok  ] {path} ({size / 1e6:.1f} MB)")
 
 
+def _s3gen_keys_ok(path: Path) -> bool:
+    import torch  # lazy: only needed for validation
+
+    try:
+        state = torch.load(path, map_location="cpu", weights_only=True)
+    except Exception:
+        return False
+    return "tokenizer._mel_filters" in state and "tokenizer.window" in state
+
+
 def ensure_s3gen_pt() -> None:
     target = MODELS_DIR / "s3gen.pt"
+    if target.is_file() and _s3gen_keys_ok(target):
+        print("[skip] s3gen.pt already present (tokenizer keys verified)")
+        return
     if target.is_file():
-        print("[skip] s3gen.pt already present")
-        return
-    src_pt = MODELS_DIR / "s3gen_v3.pt"
-    if src_pt.is_file():
-        print("[copy] s3gen_v3.pt -> s3gen.pt")
-        shutil.copy2(src_pt, target)
-        return
-    src_safe = MODELS_DIR / "s3gen_v3.safetensors"
-    if src_safe.is_file():
-        print("[conv] s3gen_v3.safetensors -> s3gen.pt")
-        import torch  # lazy: only needed for the conversion fallback
-        from safetensors.torch import load_file
+        print("[stale] s3gen.pt lacks tokenizer keys - re-downloading")
+        target.unlink()
+    fetch(BASE_REPO, "s3gen.pt", MODELS_DIR, S3GEN_MIN_BYTES)
+    if not _s3gen_keys_ok(target):
+        raise RuntimeError("s3gen.pt downloaded but missing tokenizer keys")
+    print("[ok  ] s3gen.pt verified (tokenizer keys present)")
 
-        torch.save(load_file(str(src_safe)), target)
+
+def fix_models_permissions(uid: int = 1000, gid: int = 1000) -> None:
+    """Give the server user (appuser, uid 1000) ownership of /models.
+
+    The downloader runs as root; without this the read-only server still
+    works, but the HuggingFace cache inside the volume stays unwritable
+    and the server logs cache warnings at import time.
+    """
+    if os.geteuid() != 0:
         return
-    raise RuntimeError("s3gen_v3.pt missing - download did not complete")
+    base = MODELS_DIR.parent
+    if not base.exists():
+        return
+    os.chown(base, uid, gid)
+    for root, dirs, files in os.walk(base):
+        for name in dirs + files:
+            os.chown(os.path.join(root, name), uid, gid)
 
 
 def ensure_default_voice() -> None:
@@ -100,6 +126,13 @@ def ensure_default_voice() -> None:
     print(f"[ok  ] {target} ({target.stat().st_size / 1e6:.1f} MB)")
 
 
+def remove_legacy_s3gen_v3() -> None:
+    leftover = MODELS_DIR / "s3gen_v3.pt"
+    if leftover.is_file():
+        leftover.unlink()
+        print(f"[clean] removed unused {leftover.name}")
+
+
 def main() -> int:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     try:
@@ -109,6 +142,8 @@ def main() -> int:
             fetch(BASE_REPO, name, MODELS_DIR, min_bytes)
         ensure_s3gen_pt()
         ensure_default_voice()
+        remove_legacy_s3gen_v3()
+        fix_models_permissions()
     except Exception as exc:
         print(f"[fail] {exc}", file=sys.stderr)
         return 1
