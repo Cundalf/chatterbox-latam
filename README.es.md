@@ -94,6 +94,10 @@ El descargador arma exactamente el layout que espera
 [`ChatterboxMultilingualTTS.from_local`](https://github.com/resemble-ai/chatterbox), incluida la
 copia `s3gen_v3.pt → s3gen.pt` (el loader hace `torch.load("s3gen.pt")`).
 
+El paquete chatterbox-tts se instala **desde GitHub master, fijado a un commit** — la release de
+PyPI (0.1.7, 2025-06) es anterior al finetune es-mx-latam y su `from_local` no puede seleccionar
+`t3_es_mx_latam.safetensors`.
+
 ## El contrato
 
 | Endpoint | Request | Response |

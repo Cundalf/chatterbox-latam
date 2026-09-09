@@ -58,13 +58,20 @@ _gen_lock = threading.Lock()
 _cond_cache: dict[tuple[str, float], object] = {}
 
 
+def _resolve_device(has_cuda: bool | None = None) -> str:
+    device = os.getenv("TTS_DEVICE", "").strip().lower()
+    if device:
+        return device
+    if has_cuda is None:
+        import torch  # lazy: keeps this module importable without torch (tests)
+
+        has_cuda = torch.cuda.is_available()
+    return "cuda" if has_cuda else "cpu"
+
+
 def load_model():
     """Build the Chatterbox Multilingual LatAm model on CUDA (or CPU)."""
-    import torch  # lazy: keeps this module importable without torch (tests)
-
-    device = os.getenv("TTS_DEVICE")
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = _resolve_device()
 
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS  # lazy: heavy import
 

@@ -12,10 +12,13 @@ RUN apt-get update \
 # Chatterbox pins torch==2.6.0 (pyproject.toml); CUDA 12.4 wheels support
 # Turing (sm_75) GPUs such as the RTX 2080 Super. Install first so the
 # chatterbox-tts dependency resolver reuses this exact build.
+# Chatterbox is installed from GitHub master pinned to a commit: the PyPI
+# release (0.1.7, 2025-06) predates the es-mx-latam finetune and its
+# `from_local` cannot select t3_es_mx_latam.safetensors.
 RUN pip install --index-url https://download.pytorch.org/whl/cu124 \
         torch==2.6.0 torchaudio==2.6.0 \
  && pip install \
-        chatterbox-tts \
+        "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" \
         "fastapi>=0.110,<1" \
         "uvicorn[standard]>=0.29,<1" \
         "soundfile>=0.12"

@@ -92,6 +92,10 @@ in fp32 (~3.4 GB of weights), leaving comfortable headroom for activations.
 The downloader assembles exactly the layout [`ChatterboxMultilingualTTS.from_local`](https://github.com/resemble-ai/chatterbox)
 expects, including the `s3gen_v3.pt → s3gen.pt` copy (the loader does `torch.load("s3gen.pt")`).
 
+The chatterbox-tts package is installed **from GitHub master, pinned to a commit** — the PyPI
+release (0.1.7, 2025-06) predates the es-mx-latam finetune and its `from_local` cannot select
+`t3_es_mx_latam.safetensors`.
+
 ## The contract
 
 | Endpoint | Request | Response |

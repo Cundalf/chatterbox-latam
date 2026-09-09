@@ -144,3 +144,20 @@ def test_info_endpoint(client):
     r = client.get("/")
     assert r.status_code == 200
     assert r.json()["service"] == "chatterbox-latam"
+
+
+def test_resolve_device_from_env(monkeypatch):
+    monkeypatch.setenv("TTS_DEVICE", "cpu")
+    assert server._resolve_device() == "cpu"
+
+
+def test_resolve_device_empty_env_auto(monkeypatch):
+    monkeypatch.setenv("TTS_DEVICE", "")
+    assert server._resolve_device(has_cuda=True) == "cuda"
+    assert server._resolve_device(has_cuda=False) == "cpu"
+
+
+def test_resolve_device_unset_env_auto(monkeypatch):
+    monkeypatch.delenv("TTS_DEVICE", raising=False)
+    assert server._resolve_device(has_cuda=True) == "cuda"
+    assert server._resolve_device(has_cuda=False) == "cpu"
