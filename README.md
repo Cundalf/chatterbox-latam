@@ -150,20 +150,34 @@ from the controller container, so `127.0.0.1` will not work.
 
 ## Voices
 
-| Location | Purpose |
-| --- | --- |
-| `./voices/*.wav` | Your reference clips (bind-mounted, no rebuild needed) |
-| `models` volume `/models/conds/default.wav` | Bundled default voice (es-MX female) |
+Seven LatAm Spanish reference voices ship with the repo in `voices/`; the bundled
+`default` voice (es-MX female) is the same clip as `es_mx_f1.wav` and lives in the
+models volume.
 
-To add a voice:
+| Voice | Gender | Origin | License |
+| --- | --- | --- | --- |
+| `es_mx_f1.wav` | F | México — official Chatterbox demo clip | MIT (official demo samples) |
+| `es_f1.wav` | F | Official Chatterbox V2 demo clip | MIT (official demo samples) |
+| `es_m1.wav` | M | Official Chatterbox V2 demo clip | MIT (official demo samples) |
+| `paisa_m1.wav` | M | Colombia (Antioquia) — David Bedoya's own voice, [a-lo-paisa](https://huggingface.co/spaces/jdavibedoya/a-lo-paisa) | MIT |
+| `mx_f1.wav` | F | México — Piper [es_MX-claude](https://huggingface.co/rhasspy/piper-voices) rendered reference | MIT (voice) + MIT (piper) |
+| `mx_m1.wav` | M | México — Piper [es_MX-ald](https://huggingface.co/rhasspy/piper-voices) rendered reference | MIT (voice) + MIT (piper) |
+| `ar_f1.wav` | F | Argentina — Piper [es_AR-daniela](https://huggingface.co/rhasspy/piper-voices) rendered reference | MIT (voice) + MIT (piper) |
 
-1. Record or cut a clip: **6–10 s, WAV, 16–24 kHz, mono, clean** (no music, no reverb).
-2. Drop it in `voices/` as `daniela.wav`.
-3. In SUB/WAVE, set the persona's **Remote voice** to `daniela`.
+All clips are 24 kHz mono PCM-16, 6–12 s, and were **cloned and verified** against the
+actual model (each one renders clean speech, see the build script). The Piper voices are
+synthesized with `piper-tts` (MIT), so no recording rights are involved. Regenerate the
+whole set anytime with:
 
-Changing a clip requires no rebuild and no volume reset — the conditioning cache re-embeds any clip
-whose path was never seen before. Clips are cached in RAM per `(clip, exaggeration)`, so repeat
-segments skip the embedding step.
+```bash
+pip install soundfile numpy scipy piper-tts
+python scripts/build_voices.py
+```
+
+To add your own voice: record or cut a clip (6–10 s, WAV, 16–24 kHz, mono, clean — no
+music, no reverb), drop it in `voices/` as `daniela.wav`, and set the persona's
+**Remote voice** to `daniela`. Your clips stay untracked by git (only the bundled
+`.wav` files are committed).
 
 ## Configuring SUB/WAVE Radio (v1.13.x)
 
@@ -266,7 +280,9 @@ in every generated clip — this is by design (Resemble Detect can identify the 
 ├── Dockerfile           # python:3.11-slim + torch 2.6.0 cu124 + chatterbox-tts
 ├── docker-compose.yml   # downloader + server, GPU reservation, healthcheck
 ├── .env.example         # optional tuning knobs
-├── voices/              # drop your reference clips here (gitignored)
+├── scripts/
+│   └── build_voices.py  # regenerate the bundled voice clips (MIT sources)
+├── voices/              # bundled LatAm voices + your reference clips (gitignored)
 └── tests/               # pytest suite with a fake model (no torch needed)
 ```
 

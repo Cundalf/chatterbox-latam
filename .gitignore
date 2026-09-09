@@ -7,9 +7,11 @@ __pycache__/
 .venv/
 .pytest_cache/
 
-# Voice clips are user content on the server (bind mount)
+# Voice clips: the bundled voices are tracked; your own clips are not.
+# Run scripts/build_voices.py to regenerate the bundled set.
 voices/*
 !voices/.gitkeep
+!voices/*.wav
 
 # Audio artifacts
 *.wav

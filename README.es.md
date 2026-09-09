@@ -151,20 +151,34 @@ SUB/WAVE debe ser alcanzable desde el contenedor del controller, así que `127.0
 
 ## Voces
 
-| Ubicación | Propósito |
-| --- | --- |
-| `./voices/*.wav` | Tus clips de referencia (bind-mount, sin rebuild) |
-| Volumen `models`, `/models/conds/default.wav` | Voz default incluida (femenina es-MX) |
+Siete voces de referencia en español latinoamericano vienen con el repo en `voices/`; la voz
+`default` incluida (femenina es-MX) es el mismo clip que `es_mx_f1.wav` y vive en el volumen
+de modelos.
 
-Para agregar una voz:
+| Voz | Género | Origen | Licencia |
+| --- | --- | --- | --- |
+| `es_mx_f1.wav` | F | México — clip oficial del demo de Chatterbox | MIT (samples oficiales) |
+| `es_f1.wav` | F | Clip oficial del demo V2 de Chatterbox | MIT (samples oficiales) |
+| `es_m1.wav` | M | Clip oficial del demo V2 de Chatterbox | MIT (samples oficiales) |
+| `paisa_m1.wav` | M | Colombia (Antioquia) — voz propia de David Bedoya, [a-lo-paisa](https://huggingface.co/spaces/jdavibedoya/a-lo-paisa) | MIT |
+| `mx_f1.wav` | F | México — referencia renderizada con Piper [es_MX-claude](https://huggingface.co/rhasspy/piper-voices) | MIT (voz) + MIT (piper) |
+| `mx_m1.wav` | M | México — referencia renderizada con Piper [es_MX-ald](https://huggingface.co/rhasspy/piper-voices) | MIT (voz) + MIT (piper) |
+| `ar_f1.wav` | F | Argentina — referencia renderizada con Piper [es_AR-daniela](https://huggingface.co/rhasspy/piper-voices) | MIT (voz) + MIT (piper) |
 
-1. Grabá o cortá un clip: **6–10 s, WAV, 16–24 kHz, mono, limpio** (sin música ni reverb).
-2. Ponelo en `voices/` como `daniela.wav`.
-3. En SUB/WAVE, seteá la **Remote voice** de la persona a `daniela`.
+Todos los clips son WAV PCM-16 mono 24 kHz, de 6–12 s, y fueron **clonados y verificados** contra
+el modelo real (cada uno genera habla limpia, ver el script de build). Las voces de Piper se
+sintetizan con `piper-tts` (MIT), así que no involucran derechos de grabación. Regenerá todo el
+set cuando quieras:
 
-Cambiar un clip no requiere rebuild ni resetear el volumen — la caché de condicionamiento re-embede
-cualquier clip cuya ruta no haya visto antes. Los clips se cachean en RAM por `(clip, exaggeration)`,
-así los segmentos repetidos se saltan el paso de embedding.
+```bash
+pip install soundfile numpy scipy piper-tts
+python scripts/build_voices.py
+```
+
+Para agregar tu propia voz: grabá o cortá un clip (6–10 s, WAV, 16–24 kHz, mono, limpio — sin
+música ni reverb), ponelo en `voices/` como `daniela.wav`, y seteá la **Remote voice** de la
+persona a `daniela`. Tus clips quedan fuera del control de git (solo los `.wav` del bundle están
+commiteados).
 
 ## Configurar SUB/WAVE Radio (v1.13.x)
 
@@ -269,7 +283,9 @@ imperceptible en cada clip generado — es por diseño (Resemble Detect puede id
 ├── Dockerfile           # python:3.11-slim + torch 2.6.0 cu124 + chatterbox-tts
 ├── docker-compose.yml   # downloader + server, reserva de GPU, healthcheck
 ├── .env.example         # knobs de ajuste opcionales
-├── voices/              # poné tus clips de referencia acá (gitignored)
+├── scripts/
+│   └── build_voices.py  # regenera las voces del bundle (fuentes MIT)
+├── voices/              # voces LatAm del bundle + tus clips (gitignored)
 └── tests/               # suite pytest con modelo fake (no necesita torch)
 ```
 
