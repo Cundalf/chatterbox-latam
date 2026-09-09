@@ -16,9 +16,9 @@ RUN pip install --index-url https://download.pytorch.org/whl/cu124 \
         torch==2.6.0 torchaudio==2.6.0 \
  && pip install \
         chatterbox-tts \
-        fastapi>=0.110,<1 \
+        "fastapi>=0.110,<1" \
         "uvicorn[standard]>=0.29,<1" \
-        soundfile>=0.12
+        "soundfile>=0.12"
 
 RUN useradd --create-home --uid 1000 appuser
 
